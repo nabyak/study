@@ -10,7 +10,7 @@ var ejsMate = require('ejs-mate');
 var session = require('express-session');
 var cookiePrser = require('cookie-parser');
 var flash = require('express-flash');
-var mongoStore = require('connect-mongo')(session);
+var mongoStore = require('connect-mongo/es5')(session);
 var passport = require('passport');
 
 
@@ -42,7 +42,11 @@ app.use(session({
   secret: secret.secretKey,
   store: new mongoStore({url: secret.database, autoReconnect:true })
 }));
-app.use(flash())
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session())
+
+
 app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 
