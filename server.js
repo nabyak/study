@@ -7,12 +7,21 @@ var User = require('./models/user');
 var bodyParser = require('body-parser');
 var ejs = require('ejs');
 var ejsMate = require('ejs-mate');
+var session = require('express-session');
+var cookiePrser = require('cookie-parser');
+var flash = require('express-flash');
+var mongoStore = require('connect-mongo')(session);
+var passport = require('passport');
 
+
+var secret = require('./config/secret');
+
+var User = require('./models/user');
 
 var app = express();
 
 
-mongoose.connect('mongodb://root:abc1234@ds111188.mlab.com:11188/ecomm', function(err){
+mongoose.connect(secret.database, function(err){
   if(err){
     console.log(err);
   }
@@ -22,30 +31,25 @@ mongoose.connect('mongodb://root:abc1234@ds111188.mlab.com:11188/ecomm', functio
 })
 
 // Middleware
-
+app.use(express.static(__dirname + '/public')); // This is to tell which folder to look for js and css files in our directory
 app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookiePrser());
+app.use(session({
+  resave: true, // THis force to save the session.
+  saveUninitialized: true,
+  secret: secret.secretKey,
+  store: new mongoStore({url: secret.database, autoReconnect:true })
+}));
+app.use(flash())
 app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 
-app.get('/',function(req, res) {
-  res.render("home");
-})
-
-app.post('/createUser', function(req, res, next){
-  var user = new User();
-  user.profile.name =  req.body.name;
-  user.password = req.body.password;
-  user.email = req.body.email;
-
-
-  user.save(function(err){
-    if(err) return next(err);
-
-    res.json(" Successfully created the user ")
-  });
-})
+var mainRoutes = require('./routes/main')
+var userRoutes = require('./routes/user')
+app.use('/',mainRoutes);// app.use('/batman', mainRoutes); this will append batman in every main routes
+app.use(userRoutes);
 
 // app.get('/name',function(req, res) {
 //   var name = "Neaby";
@@ -53,7 +57,7 @@ app.post('/createUser', function(req, res, next){
 // })
 
 
-app.listen(3000, function (err){
+app.listen(secret.port, function (err){
   if(err) throw err;
-  console.log(" Server is up and running on port 3000");
+  console.log(" Server is up and running on port "+secret.port);
 });
